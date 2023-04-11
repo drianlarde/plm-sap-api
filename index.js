@@ -95,7 +95,10 @@ app.post("/login", async (req, res) => {
       // return supplied origin in response, just display it in the console
       console.log("Origin:", req.headers.origin);
 
-      // res.status(200).json({ token: accessToken, user });
+      /* `// res.status(200).json({ token: accessToken, user });` is sending a response to the client
+      with a status code of 200 and a JSON object containing a token and user data. However, this
+      line of code is currently commented out, so it will not be executed. */
+      res.status(200).json({ token: accessToken, user });
       return;
     });
   } catch (error) {
