@@ -20,7 +20,7 @@ const JWT_SECRET = process.env.JWT_SECRET;
 
 const allowCors = (req, res, next) => {
   res.setHeader("Access-Control-Allow-Credentials", true);
-  res.setHeader("Access-Control-Allow-Origin", req.headers.origin);
+  res.setHeader("Access-Control-Allow-Origin", "https://plm-sap.vercel.app");
   res.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS,PATCH,DELETE,POST,PUT");
   res.setHeader(
     "Access-Control-Allow-Headers",
