@@ -15,7 +15,7 @@
   "headers": [
     {
       "source": "/(.*)",
-      "headers": [{ "key": "Access-Control-Allow-Origin", "value": "http://localhost:3001/" }]
+      "headers": [{ "key": "Access-Control-Allow-Origin", "value": "https://plm-sap.vercel.app" }]
     }
   ]
 }
