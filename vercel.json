@@ -15,7 +15,7 @@
   "headers": [
     {
       "source": "/(.*)",
-      "headers": [{ "key": "Access-Control-Allow-Origin", "value": "*" }]
+      "headers": [{ "key": "Access-Control-Allow-Origin", "value": "http://localhost:3001/" }]
     }
   ]
 }
