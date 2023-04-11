@@ -21,7 +21,7 @@ const JWT_SECRET = process.env.JWT_SECRET;
 const allowCors = (req, res, next) => {
   res.setHeader("Access-Control-Allow-Credentials", true);
   // res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Origin", "https://plm-sap.vercel.app/login");
+  res.setHeader("Access-Control-Allow-Origin", "https://plm-sap.vercel.app/");
   res.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS,PATCH,DELETE,POST,PUT");
   res.setHeader(
     "Access-Control-Allow-Headers",
@@ -73,6 +73,7 @@ app.listen(port, () => {
 
 app.post("/login", async (req, res) => {
   const { plmEmailAddress, password } = req.body;
+  res.setHeader("Access-Control-Allow-Origin", "https://plm-sap.vercel.app/");
 
   try {
     const usersCollection = admin.firestore().collection("users");
@@ -91,7 +92,10 @@ app.post("/login", async (req, res) => {
 
       const accessToken = jwt.sign(user, JWT_SECRET, { expiresIn: "1h" });
 
-      res.status(200).json({ token: accessToken, user });
+      // return supplied origin in response, just display it in the console
+      console.log("Origin:", req.headers.origin);
+
+      // res.status(200).json({ token: accessToken, user });
       return;
     });
   } catch (error) {
