@@ -18,11 +18,16 @@ app.use(cookieParser());
 const port = process.env.PORT || 3001;
 const JWT_SECRET = process.env.JWT_SECRET;
 
+const allowedOrigins = ["https://plm-sap.vercel.app", "http://127.0.0.1:5173"];
+
 const allowCors = (req, res, next) => {
+  const origin = req.headers.origin;
+
+  if (allowedOrigins.includes(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+  }
+
   res.setHeader("Access-Control-Allow-Credentials", true);
-  // res.setHeader("Access-Control-Allow-Origin", "https://plm-sap.vercel.app");
-  // res.setHeader("Access-Control-Allow-Origin", ["http://127.0.0.1:5173"]);
-  res.setHeader("Access-Control-Allow-Origin", ["https://plm-sap.vercel.app", "http://127.0.0.1:5173"]);
   res.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS,PATCH,DELETE,POST,PUT");
   res.setHeader(
     "Access-Control-Allow-Headers",
