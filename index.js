@@ -141,7 +141,7 @@ app.post('/login', async (req, res) => {
       const user = doc.data();
 
       // Use studentNo as password if password is not set
-      const validPassword = user.password || user.studentNo;
+      const validPassword = user.password || user.id;
 
       // Verify provided password
       if (password !== validPassword) {
