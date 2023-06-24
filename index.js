@@ -1,7 +1,6 @@
 const express = require('express');
 const admin = require('firebase-admin');
 const bodyParser = require('body-parser');
-const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
@@ -84,6 +83,11 @@ function authenticateToken(req, res, next) {
   });
 }
 
+// Add a simple '/' path
+app.get('/', (req, res) => {
+  res.send('Hello from the Firebase server!');
+});
+
 app.listen(port, () => {
   console.log(`Server listening at http://localhost:${port}`);
 });
@@ -119,6 +123,12 @@ app.post('/login', async (req, res) => {
       }
 
       const accessToken = jwt.sign(user, JWT_SECRET, { expiresIn: '1h' });
+
+      res.cookie('token', accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV !== 'development',
+        expires: new Date(Date.now() + 60 * 60 * 1000) // 1 hour
+      });
 
       console.log('Origin:', req.headers.origin);
 
