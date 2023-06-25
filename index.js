@@ -3,18 +3,29 @@ const admin = require('firebase-admin');
 const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
 const jwt = require('jsonwebtoken');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 require('dotenv').config();
+
+const { check, validationResult } = require('express-validator');
+const expressSanitizer = require('express-sanitizer');
 
 const app = express();
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
+app.use(expressSanitizer()); // add this line after bodyParser
 
 const port = process.env.PORT || 3001;
 const JWT_SECRET = process.env.JWT_SECRET;
 
 const allowedOrigins = ['https://plm-sap.vercel.app', 'http://127.0.0.1:5173'];
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100 // limit each IP to 100 requests per windowMs
+});
 
 const allowCors = (req, res, next) => {
   const origin = req.headers.origin;
@@ -42,6 +53,14 @@ const allowCors = (req, res, next) => {
 };
 
 app.use(allowCors);
+app.use((req, res, next) => {
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src 'self'; script-src 'self'; img-src 'self'; style-src 'self'; frame-src 'none';"
+  );
+  next();
+});
+app.use(helmet());
 
 admin.initializeApp({
   credential: admin.credential.cert({
@@ -92,53 +111,65 @@ app.listen(port, () => {
   console.log(`Server listening at http://localhost:${port}`);
 });
 
-app.post('/login', async (req, res) => {
-  const { plmEmailAddress, password } = req.body;
-
-  try {
-    const usersCollection = admin.firestore().collection('users');
-    const emailQuery = usersCollection.where(
-      'PLM Email Address',
-      '==',
-      plmEmailAddress
-    );
-
-    const querySnapshot = await emailQuery.get();
-
-    if (querySnapshot.empty) {
-      console.log('No matching documents.');
-      return res.status(401).json({ message: 'No matching documents.' });
+app.post(
+  '/login',
+  loginLimiter,
+  [
+    check('plmEmailAddress').isEmail().normalizeEmail(),
+    check('password').isLength({ min: 5 }).trim().escape()
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
     }
 
-    querySnapshot.forEach((doc) => {
-      console.log(doc.id, '=>', doc.data());
-      const user = doc.data();
+    const { plmEmailAddress, password } = req.body;
 
-      // Use studentNo as password if password is not set
-      const validPassword = user.password || user.id;
+    try {
+      const usersCollection = admin.firestore().collection('users');
+      const emailQuery = usersCollection.where(
+        'PLM Email Address',
+        '==',
+        plmEmailAddress
+      );
 
-      // Verify provided password
-      if (password !== validPassword) {
-        return res.status(401).json({ message: 'Incorrect password.' });
+      const querySnapshot = await emailQuery.get();
+
+      if (querySnapshot.empty) {
+        console.log('No matching documents.');
+        return res.status(401).json({ message: 'No matching documents.' });
       }
 
-      const accessToken = jwt.sign(user, JWT_SECRET, { expiresIn: '1h' });
+      querySnapshot.forEach((doc) => {
+        console.log(doc.id, '=>', doc.data());
+        const user = doc.data();
 
-      res.cookie('token', accessToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV !== 'development',
-        expires: new Date(Date.now() + 60 * 60 * 1000) // 1 hour
+        // Use studentNo as password if password is not set
+        const validPassword = user.password || user.id;
+
+        // Verify provided password
+        if (password !== validPassword) {
+          return res.status(401).json({ message: 'Incorrect password.' });
+        }
+
+        const accessToken = jwt.sign(user, JWT_SECRET, { expiresIn: '1h' });
+
+        console.log('Origin:', req.headers.origin);
+
+        res.status(200).json({ token: accessToken, user });
+        return;
       });
-
-      console.log('Origin:', req.headers.origin);
-
-      res.status(200).json({ token: accessToken, user });
-      return;
-    });
-  } catch (error) {
-    console.error('Error logging in:', error);
-    res.status(500).json({ message: 'An error occurred while logging in.' });
+    } catch (error) {
+      console.error('Error logging in:', error);
+      res.status(500).json({ message: 'An error occurred while logging in.' });
+    }
   }
+);
+
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).send('Something broke!');
 });
 
 app.get('/protected', authenticateToken, (req, res) => {
